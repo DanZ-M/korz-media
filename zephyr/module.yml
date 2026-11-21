@@ -1,0 +1,4 @@
+name: korz-media
+build:
+  cmake: .
+  kconfig: Kconfig
