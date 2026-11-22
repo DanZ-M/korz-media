@@ -26,37 +26,65 @@ static void announce(void)
 	raise_korz_media_changed((struct korz_media_changed){.volume = volume, .muted = muted});
 }
 
+/* move the estimate by one host step (dir +1 / -1) and tell the others if it changed */
+static void step(int dir)
+{
+	int v = CLAMP((int)volume + dir * CONFIG_KORZ_MEDIA_VOLUME_STEP, 0, 100);
+	/* the clamp is the re-sync: enough presses always land on 0 / 100 */
+
+	if (v != volume || muted) {
+		volume = (uint8_t)v;
+		muted = false; /* the hosts unmute on a volume key */
+		announce();
+	}
+}
+
+/* The keyboard sends one press; the host repeats it by itself while the key is held.
+ * Do the same here, with the host's repeat delay and rate. */
+static int held_dir;
+static uint32_t held_key;
+
+static void repeat_fn(struct k_work *work)
+{
+	if (held_dir != 0) {
+		step(held_dir);
+		k_work_reschedule(k_work_delayable_from_work(work),
+				  K_MSEC(CONFIG_KORZ_MEDIA_REPEAT_MS));
+	}
+}
+
+static K_WORK_DELAYABLE_DEFINE(repeat_work, repeat_fn);
+
 static int on_key(const zmk_event_t *eh)
 {
 	const struct zmk_keycode_state_changed *ev = as_zmk_keycode_state_changed(eh);
-	int v = volume;
-	bool m = muted;
 
-	if (ev == NULL || !ev->state || ev->usage_page != HID_USAGE_CONSUMER) {
+	if (ev == NULL || ev->usage_page != HID_USAGE_CONSUMER) {
+		return ZMK_EV_EVENT_BUBBLE;
+	}
+
+	if (!ev->state) {
+		if (ev->keycode == held_key && held_dir != 0) {
+			held_dir = 0;
+			k_work_cancel_delayable(&repeat_work);
+		}
 		return ZMK_EV_EVENT_BUBBLE;
 	}
 
 	switch (ev->keycode) {
 	case HID_USAGE_CONSUMER_VOLUME_INCREMENT:
-		v += CONFIG_KORZ_MEDIA_VOLUME_STEP;
-		m = false; /* the hosts unmute on a volume key */
-		break;
 	case HID_USAGE_CONSUMER_VOLUME_DECREMENT:
-		v -= CONFIG_KORZ_MEDIA_VOLUME_STEP;
-		m = false;
+		held_dir = ev->keycode == HID_USAGE_CONSUMER_VOLUME_INCREMENT ? 1 : -1;
+		held_key = ev->keycode;
+		step(held_dir);
+		k_work_reschedule(&repeat_work, K_MSEC(CONFIG_KORZ_MEDIA_REPEAT_DELAY_MS));
 		break;
 	case HID_USAGE_CONSUMER_MUTE:
-		m = !m;
+		muted = !muted;
+		announce();
 		break;
 	default:
-		return ZMK_EV_EVENT_BUBBLE;
-	}
-
-	v = CLAMP(v, 0, 100); /* the clamp is the re-sync: enough presses always land on 0 / 100 */
-	if (v != volume || m != muted) {
-		volume = (uint8_t)v;
-		muted = m;
-		announce();
+		break;
 	}
 	return ZMK_EV_EVENT_BUBBLE;
 }

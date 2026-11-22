@@ -11,6 +11,7 @@ Bluetooth AVRCP is a Bluetooth Classic profile (the nRF52840 is BLE only). So th
 the future gesture engine are all counted, because they all pass through ZMK's keycode event.
 
 - Windows changes 2 % per press (default). macOS ~6 %, Android ~7 %: set the step.
+- A held key repeats at the host rate (`KORZ_MEDIA_REPEAT_DELAY_MS`, `KORZ_MEDIA_REPEAT_MS`; tune by holding a key 3 s and comparing).
 - It drifts if the volume is changed elsewhere (mouse, laptop keys, an app). Pressing up or
   down enough times pins it at 100 / 0, which re-syncs it.
 - Other modules use it: `#include <korz/media.h>`, `korz_media_volume()`, `korz_media_muted()`,

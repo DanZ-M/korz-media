@@ -16,6 +16,19 @@ config KORZ_MEDIA_VOLUME_STEP
 	default 2
 	range 1 25
 
+config KORZ_MEDIA_REPEAT_DELAY_MS
+	int "Held volume key: ms before the host starts repeating (your OS keyboard setting)"
+	default 500
+	range 100 2000
+
+config KORZ_MEDIA_REPEAT_MS
+	int "Held volume key: ms between host repeats"
+	default 100
+	range 20 1000
+	help
+	  Tune it: hold a volume key for 3 s. If the bar ends above the computer's volume,
+	  raise this number; if below, lower it.
+
 config KORZ_MEDIA_VOLUME_START
 	int "Estimate at power-up"
 	default 50
