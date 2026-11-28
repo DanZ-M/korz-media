@@ -39,6 +39,7 @@ enum korz_media_learn korz_media_learn_stage(void) { return learn_stage; }
 
 static void announce(void)
 {
+	LOG_INF("korz-media: volume %d%% muted %d learn %d", volume, muted, learn_stage);
 	raise_korz_media_changed((struct korz_media_changed){
 		.volume = volume, .muted = muted, .learn = learn_stage});
 }
@@ -312,6 +313,12 @@ static uint32_t held_key;
 static void repeat_fn(struct k_work *work)
 {
 	if (held_dir != 0) {
+#if IS_ENABLED(CONFIG_KORZ_MEDIA_LEARN)
+		if (learn_stage >= KORZ_MEDIA_LEARN_HOLD1) {
+			held_dir = 0; /* the repeat is being measured, not counted */
+			return;
+		}
+#endif
 		volume_key(held_dir);
 		k_work_reschedule(k_work_delayable_from_work(work),
 				  K_MSEC(rep_period[ep_index()]));
@@ -329,12 +336,8 @@ static int on_key(const zmk_event_t *eh)
 	}
 
 #if IS_ENABLED(CONFIG_KORZ_MEDIA_LEARN)
-	if (learn_stage >= KORZ_MEDIA_LEARN_HOLD1 && learn_stage != KORZ_MEDIA_LEARN_SAVED) {
-		if (ev->state) {
-			rep_press(ev);
-		} else {
-			rep_release(ev);
-		}
+	if (ev->state && learn_stage >= KORZ_MEDIA_LEARN_HOLD1) {
+		rep_press(ev);
 		return ZMK_EV_EVENT_BUBBLE; /* the keys reach the host, but are not counted as volume */
 	}
 #endif
@@ -345,7 +348,9 @@ static int on_key(const zmk_event_t *eh)
 			k_work_cancel_delayable(&repeat_work);
 		}
 #if IS_ENABLED(CONFIG_KORZ_MEDIA_LEARN)
-		if (ev->keycode == HID_USAGE_CONSUMER_MUTE) {
+		if (learn_stage >= KORZ_MEDIA_LEARN_HOLD1) {
+			rep_release(ev); /* it also covers the mute key */
+		} else if (ev->keycode == HID_USAGE_CONSUMER_MUTE) {
 			k_work_cancel_delayable(&learn_hold_work); /* a short press: just a mute */
 		}
 #endif
