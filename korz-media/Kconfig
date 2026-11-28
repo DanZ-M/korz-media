@@ -1,0 +1,60 @@
+menuconfig KORZ_MEDIA
+	bool "korz-media: host media state without a helper program"
+
+if KORZ_MEDIA
+
+config KORZ_MEDIA_VOLUME
+	bool "Estimated host volume (counted from the volume keys the keyboard sends)"
+	default y
+	help
+	  A keyboard cannot read the computer's volume. This keeps an estimate: every volume
+	  up / down key the keyboard sends moves it by KORZ_MEDIA_VOLUME_STEP percent, mute
+	  toggles. Pressing up (or down) enough times pins it at 100 (or 0), which re-syncs it.
+
+config KORZ_MEDIA_VOLUME_STEP
+	int "Percent per volume key press (Windows 2, Android about 7, macOS about 6)"
+	default 2
+	range 1 25
+
+config KORZ_MEDIA_REPEAT_DELAY_MS
+	int "Held volume key: ms before the host starts repeating (your OS keyboard setting)"
+	default 500
+	range 100 2000
+
+config KORZ_MEDIA_REPEAT_MS
+	int "Held volume key: ms between host repeats"
+	default 100
+	range 20 1000
+	help
+	  Tune it: hold a volume key for 3 s. If the bar ends above the computer's volume,
+	  raise this number; if below, lower it.
+
+config KORZ_MEDIA_VOLUME_START
+	int "Estimate at power-up"
+	default 50
+	range 0 100
+
+config KORZ_MEDIA_LEARN
+	bool "Learn the volume step of each connection (hold mute)"
+	default y
+	depends on KORZ_MEDIA_VOLUME
+	select SETTINGS
+	help
+	  Hold the mute key to start. Press volume down until the computer or phone is at 0 %,
+	  then press volume up one press at a time until it is at 100 %, then press volume down
+	  once. The number of presses is saved for the connection in use (USB or Bluetooth
+	  profile). Hold mute again to cancel.
+
+config KORZ_MEDIA_LEARN_HOLD_MS
+	int "Hold mute this long to start / cancel learning (ms)"
+	default 3000
+	range 1000 10000
+	depends on KORZ_MEDIA_LEARN
+
+config KORZ_MEDIA_LEARN_TIMEOUT_S
+	int "Learning ends by itself after this many seconds without a volume key"
+	default 60
+	range 10 600
+	depends on KORZ_MEDIA_LEARN
+
+endif # KORZ_MEDIA

@@ -1,0 +1,5 @@
+if(CONFIG_KORZ_MEDIA_VOLUME)
+  zephyr_library()
+  zephyr_library_sources(src/media_volume.c)
+  zephyr_include_directories(include)
+endif()
