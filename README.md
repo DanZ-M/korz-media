@@ -25,3 +25,26 @@ title and volume; not built.)
 ## Planned
 
 Media-control layer for the round display (CrowPanel 1.28" knob), gesture-driven volume.
+
+## Learning the volume step (KORZ_MEDIA_LEARN)
+
+Computers and phones use different step sizes (Windows 50 steps, many Androids 15, ...), so the
+bar drifts. Teach the keyboard once per connection (USB and each Bluetooth profile are saved
+separately, in the dongle's settings):
+
+1. **Hold mute for 3 s.** Stage 1 starts.
+2. Press **volume down** until the computer / phone is at 0 %.
+3. Press **volume up**, one press per step (tap, do not hold), until it is at 100 %.
+4. Press **volume down once**. The number of presses is saved, the bar is in sync.
+
+Hold mute for 3 s again to cancel; it also ends by itself after 60 s without a volume key, and
+with fewer than 2 presses nothing is saved.
+
+Repeat learning follows (to keep the bar right while a key is held; hold mute 3 s to skip it):
+5. Tap volume down until the device is at 0. **Hold volume up** for a while (not to 100 %, e.g. up to about 40 %), release.
+6. **Tap volume down** until the device is at 0 again, one tap per step, then press **mute** once.
+7. Repeat 5 and 6 with a longer hold (at least 0.5 s longer, still short of 100 %).
+The keyboard times the holds and counts the taps, works out the repeat delay and rate and saves them for the connection. The mute press in step 6 toggles the host's mute once (at 0 % you can't hear it). The stage is available to other modules with
+`korz_media_learn_stage()` and in the `korz_media_changed` event (`learn`), for status lights.
+Note the host sees the mute key too: the long hold toggles its mute once (the volume key in
+stage 1 unmutes it again).
